@@ -3,34 +3,38 @@ name: release
 on:
   push:
     tags:
-    - "*"
-  
+      - "*"
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set VERSION variable from tag
-      run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+      - name: Set VERSION variable from tag
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 6.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
 
-    - name: Restore dependencies
-      run: dotnet restore SampSharp.sln
+      - name: Restore dependencies
+        run: dotnet restore SampSharp.sln
 
-    - name: Test
-      run: dotnet test SampSharp.sln /p:CiVersion=${VERSION} --no-restore
+      - name: Test
+        run: dotnet test SampSharp.sln /p:CiVersion=${VERSION} --no-restore
 
-    - name: Build
-      run: dotnet build SampSharp.sln /p:CiVersion=${VERSION} --configuration Release --no-restore
+      - name: Build
+        run: dotnet build SampSharp.sln /p:CiVersion=${VERSION} --configuration Release --no-restore
 
-    - name: Pack
-      run: dotnet pack SampSharp.sln --configuration Release --no-build --output bin
+      - name: Pack
+        run: dotnet pack SampSharp.sln --configuration Release --no-build --output bin
 
-    - name: Push
-      run: dotnet nuget push bin/*.nupkg --source="https://api.nuget.org/v3/index.json" --api-key ${{secrets.NUGET_API_KEY}} --skip-duplicate
+      - name: Setup Nuget Registry
+        run: |
+          dotnet nuget add source --username Duduzera1997 --password ${{ secrets.GH_PAT }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/gtatorcidas/index.json"
+
+      - name: Push
+        run: dotnet nuget push bin/*.nupkg --source="github" --api-key ${{secrets.GH_PAT}} --skip-duplicate
