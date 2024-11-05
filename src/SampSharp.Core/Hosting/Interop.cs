@@ -39,13 +39,51 @@ public static unsafe class Interop
     /// <returns>The return value of the native.</returns>
     public static int FastNativeInvoke(IntPtr native, string format, int* args)
     {
-        var bytes = Encoding.ASCII.GetByteCount(format) + 1;
-        var formatPtr = stackalloc byte[bytes];
-        var formatSpan = new Span<byte>(formatPtr, bytes);
-        Encoding.ASCII.GetBytes(format, formatSpan);
-        formatSpan[^1] = 0;
+        if (_api == null)
+        {
+            Print("[FATAL] SampSharp API is not initialized");
+            return 0;
+        }
 
-        return _api->InvokeNative((void*)native, formatPtr, args);
+        if (native == IntPtr.Zero)
+        {
+            Print("[ERROR] Invalid native pointer (Zero)");
+            return 0;
+        }
+
+        if (string.IsNullOrEmpty(format))
+        {
+            Print("[ERROR] Invalid native format");
+            return 0;
+        }
+
+        if (args == null)
+        {
+            Print("[ERROR] Invalid native arguments");
+            return 0;
+        }
+
+        try
+        {
+            var bytes = Encoding.ASCII.GetByteCount(format) + 1;
+            var formatPtr = stackalloc byte[bytes];
+            var formatSpan = new Span<byte>(formatPtr, bytes);
+            Encoding.ASCII.GetBytes(format, formatSpan);
+            formatSpan[^1] = 0;
+
+            Print($"[DEBUG] Invoking native: Ptr={native}, Format={format}");
+
+            var result = _api->InvokeNative((void*)native, formatPtr, args);
+
+            Print($"[DEBUG] Native result: {result}");
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Print($"[ERROR] Error invoking native: {ex.Message}");
+            return 0;
+        }
     }
 
     /// <summary>Gets a pointer to a native.</summary>
@@ -53,12 +91,40 @@ public static unsafe class Interop
     /// <returns>A pointer to a native.</returns>
     public static IntPtr FastNativeFind(string name)
     {
-        var bytes = Encoding.ASCII.GetByteCount(name) + 1;
-        var namePtr = stackalloc byte[bytes];
-        var nameSpan = new Span<byte>(namePtr, bytes);
-        Encoding.ASCII.GetBytes(name, nameSpan);
-        nameSpan[^1] = 0;
-        return (IntPtr)_api->FindNative(namePtr);
+        if (_api == null)
+        {
+            Print("[FATAL] SampSharp API is not initialized");
+            return IntPtr.Zero;
+        }
+
+        if (string.IsNullOrEmpty(name))
+        {
+            Print("[ERROR] Invalid native name");
+            return IntPtr.Zero;
+        }
+
+        try
+        {
+            var bytes = Encoding.ASCII.GetByteCount(name) + 1;
+            var namePtr = stackalloc byte[bytes];
+            var nameSpan = new Span<byte>(namePtr, bytes);
+            Encoding.ASCII.GetBytes(name, nameSpan);
+            nameSpan[^1] = 0;
+
+            var ptr = (IntPtr)_api->FindNative(namePtr);
+
+            if (ptr == IntPtr.Zero)
+            {
+                Print($"[WARN] Native not found: {name}");
+            }
+
+            return ptr;
+        }
+        catch (Exception ex)
+        {
+            Print($"[ERROR] Error finding native '{name}': {ex.Message}");
+            return IntPtr.Zero;
+        }
     }
 
     /// <summary>Prints the specified message to the SA:MP server log.</summary>
@@ -95,8 +161,8 @@ public static unsafe class Interop
 
     internal static void Initialize(InteropInitializeDelegate initializer)
     {
-        var ptr = (delegate* unmanaged[Cdecl] <IntPtr, sbyte*, IntPtr, IntPtr, void>)&PublicCall;
-        var ptrTick = (delegate* unmanaged[Cdecl] <void>)&Tick;
+        var ptr = (delegate* unmanaged[Cdecl]<IntPtr, sbyte*, IntPtr, IntPtr, void>)&PublicCall;
+        var ptrTick = (delegate* unmanaged[Cdecl]<void>)&Tick;
 
         var api = initializer(ptr, ptrTick);
 
