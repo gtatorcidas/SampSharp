@@ -361,7 +361,7 @@ public abstract class CommandServiceBase
     {
         public object[] Arguments;
         public CommandInfo Info;
-        public MethodInvoker Invoke;
+        public SampSharp.Entities.Utilities.MethodInvoker Invoke;
         public Type SystemType;
     }
 }
