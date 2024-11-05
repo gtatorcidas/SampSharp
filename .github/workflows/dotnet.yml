@@ -2,41 +2,40 @@ name: dotnet
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
     paths:
       - .github/workflows/dotnet.yml
       - src/**
-      - '!src/SampSharp/**'
+      - "!src/SampSharp/**"
       - SampSharp.sln
       - Makefile
 
   pull_request:
-    branches: [ master ]
+    branches: [master]
     paths:
       - .github/workflows/dotnet.yml
       - src/**
-      - '!src/SampSharp/**'
+      - "!src/SampSharp/**"
       - SampSharp.sln
       - Makefile
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 6.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 8.0.x
 
-    - name: Restore dependencies
-      run: dotnet restore SampSharp.sln
+      - name: Restore dependencies
+        run: dotnet restore SampSharp.sln
 
-    - name: Build
-      run: dotnet build SampSharp.sln --no-restore
-      
-    - name: Test
-      run: dotnet test SampSharp.sln --no-build --verbosity normal
+      - name: Build
+        run: dotnet build SampSharp.sln --no-restore
+
+      - name: Test
+        run: dotnet test SampSharp.sln --no-build --verbosity normal
